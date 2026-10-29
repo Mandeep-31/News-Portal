@@ -27,3 +27,8 @@ Homestead.yaml
 Thumbs.db
 # .postman
 # //postman/global
+
+# Postman local files
+.postman/
+postman/
+postman 2/
