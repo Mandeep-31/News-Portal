@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Support\ApiResponse;
+use App\Http\Requests\AdminLoginRequest;
 use App\Services\AdminCredentialVerifier;
+use App\Support\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly AdminCredentialVerifier $adminCredentials)
-    {
-    }
+    public function __construct(private readonly AdminCredentialVerifier $adminCredentials) {}
 
-    public function showLogin()
+    public function showLogin(): View|RedirectResponse|JsonResponse
     {
         if (request()->expectsJson()) {
             return ApiResponse::error(
@@ -30,12 +32,9 @@ class AuthController extends Controller
         return view('admin.auth.login');
     }
 
-    public function login(Request $request)
+    public function login(AdminLoginRequest $request): JsonResponse|RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
+        $credentials = $request->validated();
 
         if (! $this->adminCredentials->verify($credentials['email'], $credentials['password'])) {
             if ($request->expectsJson()) {
@@ -59,7 +58,7 @@ class AuthController extends Controller
         return redirect()->route('admin.dashboard');
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse|RedirectResponse
     {
         $request->session()->forget('is_admin');
         $request->session()->invalidate();

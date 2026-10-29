@@ -3,42 +3,43 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreBannerRequest;
+use App\Http\Requests\UpdateBannerRequest;
 use App\Models\Banner;
+use App\Services\BannerService;
 use App\Support\ApiResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class BannerController extends Controller
 {
-    public function index()
-    {
-        $banners = Banner::orderBy('sort_order')->latest('id')->paginate(20);
+    public function __construct(private readonly BannerService $banners) {}
 
+    public function index(): View|JsonResponse
+    {
+        $banners = $this->banners->paginateAdmin();
         if (request()->expectsJson()) {
             $banners->getCollection()->transform(fn (Banner $banner) => $banner->toPublicArray());
+
             return ApiResponse::paginated($banners, 'Banners retrieved successfully.');
         }
 
         return view('admin.banners.index', compact('banners'));
     }
 
-    public function create()
+    public function create(): View|JsonResponse
     {
         if (request()->expectsJson()) {
             return ApiResponse::success('Submit a POST to /api/admin/banners to create a banner.');
         }
 
-        return view('admin.banners.create', ['banner' => new Banner]);
+        return view('admin.banners.create', ['banner' => $this->banners->newBanner()]);
     }
 
-    public function store(Request $request)
+    public function store(StoreBannerRequest $request): RedirectResponse|JsonResponse
     {
-        $data = $this->validated($request, requiredImage: true);
-        $data['image'] = $request->file('image')->store('banners', 'public');
-        $data['is_active'] = $request->has('is_active') ? $request->boolean('is_active') : true;
-        $data['sort_order'] = $data['sort_order'] ?? 0;
-        $banner = Banner::create($data);
-
+        $banner = $this->banners->create($request->validated());
         if ($request->expectsJson()) {
             return ApiResponse::success('Banner created successfully.', $banner->toPublicArray(), 201);
         }
@@ -46,7 +47,7 @@ class BannerController extends Controller
         return redirect()->route('admin.banners.index')->with('status', 'Banner created.');
     }
 
-    public function edit(Banner $banner)
+    public function edit(Banner $banner): View|JsonResponse
     {
         if (request()->expectsJson()) {
             return ApiResponse::success('Banner retrieved successfully.', $banner->toPublicArray());
@@ -55,48 +56,23 @@ class BannerController extends Controller
         return view('admin.banners.edit', compact('banner'));
     }
 
-    public function update(Request $request, Banner $banner)
+    public function update(UpdateBannerRequest $request, Banner $banner): RedirectResponse|JsonResponse
     {
-        $data = $this->validated($request);
-        if ($request->hasFile('image')) {
-            $newImage = $request->file('image')->store('banners', 'public');
-            Storage::disk('public')->delete($banner->image);
-            $data['image'] = $newImage;
-        }
-        $data['is_active'] = $request->has('is_active')
-            ? $request->boolean('is_active')
-            : $banner->is_active;
-        $data['sort_order'] = $data['sort_order'] ?? $banner->sort_order;
-        $banner->update($data);
-
+        $banner = $this->banners->update($banner, $request->validated());
         if ($request->expectsJson()) {
-            return ApiResponse::success('Banner updated successfully.', $banner->fresh()->toPublicArray());
+            return ApiResponse::success('Banner updated successfully.', $banner->toPublicArray());
         }
 
         return redirect()->route('admin.banners.index')->with('status', 'Banner updated.');
     }
 
-    public function destroy(Banner $banner)
+    public function destroy(Banner $banner): RedirectResponse|JsonResponse
     {
-        Storage::disk('public')->delete($banner->image);
-        $banner->delete();
-
+        $this->banners->delete($banner);
         if (request()->expectsJson()) {
             return ApiResponse::success('Banner deleted successfully.');
         }
 
         return redirect()->route('admin.banners.index')->with('status', 'Banner deleted.');
-    }
-
-    private function validated(Request $request, bool $requiredImage = false): array
-    {
-        return $request->validate([
-            'title' => ['required', 'string', 'max:255'],
-            'caption' => ['nullable', 'string', 'max:500'],
-            'link_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
-            'is_active' => ['sometimes', 'boolean'],
-            'image' => [$requiredImage ? 'required' : 'sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-        ]);
     }
 }

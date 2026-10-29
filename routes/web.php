@@ -1,15 +1,16 @@
 <?php
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
+
 use App\Http\Controllers\Admin\AuthController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\CategoryController;
-Route::get('/', [HomeController::class, 'index'])
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PostController;
+use Illuminate\Support\Facades\Route;
+Route::get('/', function () {
+    return response('App is running', 200)
+        ->header('Content-Type', 'text/plain');
+})
     ->name('home');
-Route::get('/news/{slug}', [HomeController::class, 'show'])
-    ->name('news.show');
 Route::prefix('control-room')->name('admin.')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])
         ->name('login');

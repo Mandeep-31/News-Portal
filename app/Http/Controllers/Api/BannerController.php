@@ -3,21 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Banner;
+use App\Services\BannerService;
 use App\Support\ApiResponse;
+use Illuminate\Http\JsonResponse;
 
 class BannerController extends Controller
 {
-    public function index()
-    {
-        $banners = Banner::query()
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (Banner $banner) => $banner->toPublicArray())
-            ->values();
+    public function __construct(private readonly BannerService $banners) {}
 
-        return ApiResponse::success('Banners retrieved successfully.', $banners);
+    public function index(): JsonResponse
+    {
+        return ApiResponse::success('Banners retrieved successfully.', $this->banners->activeBanners());
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\JsonResponse;
 
 class ApiResponse
 {
@@ -37,6 +37,7 @@ class ApiResponse
         return response()->json([
             'success' => false,
             'message' => $message,
+            'data' => null,
             'errors' => $errors,
         ], $status);
     }

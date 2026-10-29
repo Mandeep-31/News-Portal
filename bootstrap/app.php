@@ -1,16 +1,20 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Http\Request;
+use App\Http\Middleware\AdminAuth;
+use App\Http\Middleware\ForceApiJson;
+use App\Http\Middleware\JsonForPostman;
+use App\Http\Middleware\RequireAdminToken;
+use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
-use App\Support\ApiResponse;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -22,13 +26,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'admin.auth' => \App\Http\Middleware\AdminAuth::class,
-            'admin.token' => \App\Http\Middleware\RequireAdminToken::class,
+            'admin.auth' => AdminAuth::class,
+            'admin.token' => RequireAdminToken::class,
         ]);
         $middleware->appendToGroup('api', [
-            \App\Http\Middleware\ForceApiJson::class,
+            ForceApiJson::class,
         ]);
-        $middleware->append(\App\Http\Middleware\JsonForPostman::class);
+        $middleware->append(JsonForPostman::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $expectsJson = fn (Request $request): bool => $request->is('api/*')
@@ -43,7 +47,10 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($exception instanceof ValidationException) {
-                return ApiResponse::error('The given data was invalid.', 422, $exception->errors());
+                $errors = $exception->errors();
+                $message = $errors['category'][0] ?? 'The given data was invalid.';
+
+                return ApiResponse::error($message, 422, $errors);
             }
 
             if ($exception instanceof AuthenticationException) {
@@ -60,11 +67,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if ($exception instanceof ModelNotFoundException) {
                 $message = $request->is('api/news/*') ? 'News not found.' : 'Resource not found.';
+
                 return ApiResponse::error($message, 404);
             }
 
             if ($exception instanceof HttpResponseException) {
                 $status = $exception->getResponse()->getStatusCode();
+
                 return ApiResponse::error($status === 419 ? 'CSRF token mismatch.' : 'Request failed.', $status);
             }
 

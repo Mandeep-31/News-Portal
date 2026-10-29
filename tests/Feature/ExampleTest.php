@@ -2,20 +2,24 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Events\QueryExecuted;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
-    use RefreshDatabase;
-
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_root_returns_plain_text_without_querying_the_database_or_rendering_a_view(): void
     {
+        $queryCount = 0;
+        DB::listen(function (QueryExecuted $query) use (&$queryCount): void {
+            $queryCount++;
+        });
+
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        $response->assertOk();
+        $this->assertSame('App is running', $response->getContent());
+        $this->assertStringStartsWith('text/plain', $response->headers->get('Content-Type'));
+        $this->assertSame(0, $queryCount);
     }
 }

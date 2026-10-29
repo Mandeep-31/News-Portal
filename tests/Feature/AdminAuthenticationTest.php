@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Post;
 use App\Models\Category;
+use App\Models\Post;
+use App\Models\User;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -15,6 +17,7 @@ class AdminAuthenticationTest extends TestCase
     use RefreshDatabase;
 
     private string $adminEmail = 'admin@example.test';
+
     private string $adminPassword = 'correct-admin-password';
 
     protected function setUp(): void
@@ -173,6 +176,24 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonStructure(['errors' => ['title', 'body', 'category_id', 'priority']]);
     }
 
+    public function test_admin_can_create_more_than_six_categories(): void
+    {
+        $login = $this->postJson('/api/admin/login', [
+            'email' => $this->adminEmail,
+            'password' => $this->adminPassword,
+        ])->assertOk();
+        $token = $login->json('data.token');
+
+        foreach (range(1, 7) as $number) {
+            $this->withToken($token)
+                ->postJson('/api/admin/categories', ['name' => "Category {$number}"])
+                ->assertCreated()
+                ->assertJsonPath('success', true);
+        }
+
+        $this->assertDatabaseCount('categories', 7);
+    }
+
     public function test_browser_session_login_logout_and_login_again_still_work(): void
     {
         $credentials = ['email' => $this->adminEmail, 'password' => $this->adminPassword];
@@ -198,7 +219,7 @@ class AdminAuthenticationTest extends TestCase
         $this->assertContains('web', $loginRoute->gatherMiddleware());
         $this->assertContains('web', $logoutRoute->gatherMiddleware());
         $this->assertContains(
-            \Illuminate\Foundation\Http\Middleware\PreventRequestForgery::class,
+            PreventRequestForgery::class,
             app('router')->getMiddlewareGroups()['web'],
         );
     }
@@ -250,12 +271,21 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonPath('meta.total', 1)
             ->assertJsonPath('errors', null);
 
-        $this->get('/api/news/categories')
+        $this->get('/api/categories')
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.0.id', $category->id)
             ->assertJsonPath('data.0.name', 'Technology')
             ->assertJsonPath('data.0.slug', 'technology');
+
+        $this->get("/api/categories/{$category->id}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $category->id)
+            ->assertJsonPath('data.posts_count', 1);
+
+        $this->get("/api/category/{$category->id}/news")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $story->id);
 
         $this->get('/api/news/example-news')
             ->assertOk()
@@ -291,7 +321,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertDontSee('Internal exception detail');
 
         Route::middleware('api')->get('/api/testing/csrf-error', function () {
-            throw new \Illuminate\Session\TokenMismatchException('CSRF token mismatch.');
+            throw new TokenMismatchException('CSRF token mismatch.');
         });
 
         $this->get('/api/testing/csrf-error')

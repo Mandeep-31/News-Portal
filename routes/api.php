@@ -1,20 +1,24 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\BannerController as AdminBannerController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\NewsController;
 use App\Support\ApiResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/news', [NewsController::class, 'index']);
-Route::get('/news/categories', [CategoryController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{categoryId}', [CategoryController::class, 'show'])
+    ->whereNumber('categoryId');
+Route::get('/category/{categoryId}/news', [CategoryController::class, 'news'])
+    ->whereNumber('categoryId');
+Route::get('/news/search', [NewsController::class, 'search']);
 Route::get('/news/{slug}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
 

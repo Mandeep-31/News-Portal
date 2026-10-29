@@ -3,53 +3,40 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\AdminLoginRequest;
+use App\Services\AdminAuthService;
 use App\Support\ApiResponse;
-use App\Services\AdminCredentialVerifier;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminAuthController extends Controller
 {
-    public function __construct(private readonly AdminCredentialVerifier $adminCredentials)
+    public function __construct(private readonly AdminAuthService $authentication) {}
+
+    public function login(AdminLoginRequest $request): JsonResponse
     {
-    }
+        $token = $this->authentication->issueApiToken(
+            $request->validated('email'),
+            $request->validated('password'),
+        );
 
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required', 'string'],
-        ]);
-
-        $adminEmail = config('admin.email');
-
-        if (! $this->adminCredentials->verify($credentials['email'], $credentials['password'])) {
+        if ($token === null) {
             return ApiResponse::error('Invalid email or password.', 401);
         }
 
-        // The environment-configured admin credential is the authority for
-        // minting the admin-scoped token. A normal user's tokens never gain
-        // this ability through their account or password.
-        $admin = User::firstOrCreate(
-            ['email' => $adminEmail],
-            [
-                'name' => 'News Administrator',
-                'password' => Str::random(64),
-            ],
-        );
-
-        $token = $admin->createToken('admin-api', ['admin']);
-
         return ApiResponse::success('Login successful.', [
             'token_type' => 'Bearer',
-            'token' => $token->plainTextToken,
+            'token' => $token,
         ]);
     }
 
-    public function logout(Request $request)
+    public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()?->currentAccessToken();
+        if ($token instanceof PersonalAccessToken) {
+            $this->authentication->revokeApiToken($token);
+        }
 
         return ApiResponse::success('Logged out.');
     }
