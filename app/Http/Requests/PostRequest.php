@@ -30,7 +30,7 @@ class PostRequest extends FormRequest
             'is_featured' => ['sometimes', 'boolean'],
             'images' => ['sometimes', 'array', 'max:3'],
             'images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'image' => ['sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            // 'image' => ['sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'remove_images' => ['sometimes', 'array'],
             'remove_images.*' => ['string'],
         ];

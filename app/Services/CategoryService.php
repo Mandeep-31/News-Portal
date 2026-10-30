@@ -34,7 +34,7 @@ class CategoryService
             ->find($categoryId);
     }
 
-    public function publicNews(int $categoryId, int $perPage = 12): ?LengthAwarePaginator
+    public function publicNews(int $categoryId, int $perPage = 10): ?LengthAwarePaginator
     {
         $category = Category::query()->find($categoryId);
         if ($category === null) {

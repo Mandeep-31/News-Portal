@@ -15,7 +15,7 @@ class NewsIndexRequest extends FormRequest
     {
         return [
             'q' => ['nullable', 'string', 'max:200'],
-            'category' => ['nullable', 'string', 'max:80'],
+            'category' => ['nullable', 'integer', 'exists:categories,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];

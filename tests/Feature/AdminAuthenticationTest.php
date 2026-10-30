@@ -97,6 +97,32 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonPath('errors', null);
     }
 
+    public function test_unauthenticated_request_cannot_toggle_post_status(): void
+    {
+        $category = Category::create(['name' => 'Local', 'slug' => 'local']);
+        $post = Post::create([
+            'title' => 'Private draft',
+            'slug' => 'private-draft',
+            'body' => 'Story body',
+            'category_id' => $category->id,
+            'is_featured' => false,
+            'is_published' => false,
+        ]);
+
+        $this->patchJson("/api/admin/posts/{$post->id}", [
+            'is_published' => true,
+            'is_featured' => true,
+        ])->assertUnauthorized()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Unauthenticated.');
+
+        $this->assertDatabaseHas('posts', [
+            'id' => $post->id,
+            'is_published' => false,
+            'is_featured' => false,
+        ]);
+    }
+
     public function test_logout_revokes_the_current_token_and_admin_can_log_in_again(): void
     {
         $login = $this->postJson('/api/admin/login', [
@@ -264,7 +290,7 @@ class AdminAuthenticationTest extends TestCase
             ->assertJsonPath('data.0.id', $story->id)
             ->assertJsonPath('data.0.title', 'Example news')
             ->assertJsonPath('data.0.slug', 'example-news')
-            ->assertJsonPath('data.0.category', 'Technology')
+            ->assertJsonPath('data.0.category.name', 'Technology')
             ->assertJsonPath('data.0.priority', 8)
             ->assertJsonPath('current_page', 1)
             ->assertJsonPath('total', 1)

@@ -56,25 +56,34 @@ class Post extends Model
         /** @var FilesystemAdapter $publicDisk */
         $publicDisk = Storage::disk('public');
         $imageUrls = array_map(fn ($path) => $publicDisk->url($path), $images);
+        $category = $this->category;
 
         return [
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
             'excerpt' => $this->excerpt,
-            'description' => $this->body,
             'body' => $this->body,
             'caption' => $this->caption,
             'category_id' => $this->category_id,
-            'category' => $this->category?->name,
-            'category_slug' => $this->category?->slug,
+            'category' => $category === null ? null : [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'created_at' => $category->created_at?->toJSON(),
+                'updated_at' => $category->updated_at?->toJSON(),
+            ],
+            'category_slug' => $category?->slug,
             'author' => $this->author,
             'added_by' => $this->added_by,
             'priority' => $this->priority,
             'is_featured' => $this->is_featured,
+            'is_published' => $this->is_published,
             'published_at' => $this->published_at?->toIso8601String(),
-            'image' => $imageUrls[0] ?? null,
+            'featured_image' => $imageUrls[0] ?? null,
             'images' => $imageUrls,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

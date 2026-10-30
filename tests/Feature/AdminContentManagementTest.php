@@ -39,8 +39,22 @@ class AdminContentManagementTest extends TestCase
             'category_id' => $category->id,
             'priority' => 3,
         ])->assertCreated()
-            ->assertJsonPath('data.title', 'Service-managed story');
+            ->assertJsonPath('data.title', 'Service-managed story')
+            ->assertJsonStructure(['data' => [
+                'id', 'title', 'slug', 'body', 'category_id', 'category' => [
+                    'id', 'name', 'slug', 'created_at', 'updated_at',
+                ], 'is_featured', 'is_published', 'published_at',
+            ]]);
         $postId = $created->json('data.id');
+
+        $this->withToken($token)->getJson('/api/admin/posts')
+            ->assertOk()
+            ->assertJsonStructure([
+                'success', 'message', 'data' => [[
+                    'id', 'title', 'body', 'category_id', 'category' => ['id', 'name', 'slug'],
+                ]],
+                'errors', 'meta', 'current_page', 'first_page_url', 'last_page_url', 'links',
+            ]);
 
         $this->withToken($token)->putJson("/api/admin/posts/{$postId}", [
             'title' => 'Updated story',
@@ -101,7 +115,7 @@ class AdminContentManagementTest extends TestCase
         $this->assertSame(7, $post->priority);
         $this->assertTrue($post->is_featured);
         $this->assertTrue($post->is_published);
-        $this->assertTrue($post->published_at->equalTo($publishedAt));
+        $this->assertSame($publishedAt->timestamp, $post->published_at->timestamp);
     }
 
     public function test_admin_can_publish_a_post_immediately_during_update(): void
@@ -128,6 +142,85 @@ class AdminContentManagementTest extends TestCase
         $this->assertSame($expectedPublishedAt->timestamp, $post->published_at->timestamp);
     }
 
+    public function test_admin_can_toggle_featured_without_changing_publication_fields(): void
+    {
+        $token = $this->adminToken();
+        $category = Category::create(['name' => 'Local', 'slug' => 'local']);
+        $publishedAt = now()->subDay()->startOfMinute();
+        $post = Post::create([
+            'title' => 'Published story',
+            'slug' => 'published-story',
+            'body' => 'Story body',
+            'category_id' => $category->id,
+            'is_featured' => false,
+            'is_published' => true,
+            'published_at' => $publishedAt,
+        ]);
+
+        $this->withToken($token)->putJson("/api/admin/posts/{$post->id}", [
+            'is_featured' => true,
+        ])->assertOk()
+            ->assertJsonPath('data.is_featured', true)
+            ->assertJsonPath('data.is_published', true);
+
+        $post->refresh();
+        $this->assertTrue($post->is_featured);
+        $this->assertTrue($post->is_published);
+        $this->assertSame($publishedAt->timestamp, $post->published_at->timestamp);
+
+        $this->withToken($token)->patchJson("/api/admin/posts/{$post->id}", [
+            'is_featured' => false,
+        ])->assertOk()
+            ->assertJsonPath('data.is_featured', false)
+            ->assertJsonPath('data.is_published', true);
+
+        $post->refresh();
+        $this->assertFalse($post->is_featured);
+        $this->assertTrue($post->is_published);
+        $this->assertSame($publishedAt->timestamp, $post->published_at->timestamp);
+    }
+
+    public function test_admin_can_publish_and_unpublish_with_the_partial_status_field(): void
+    {
+        $this->freezeTime();
+        $token = $this->adminToken();
+        $category = Category::create(['name' => 'Local', 'slug' => 'local']);
+        $post = Post::create([
+            'title' => 'Draft story',
+            'slug' => 'draft-story',
+            'body' => 'Story body',
+            'category_id' => $category->id,
+            'is_featured' => true,
+            'is_published' => false,
+        ]);
+        $publishedAt = now();
+
+        $this->withToken($token)->putJson("/api/admin/posts/{$post->id}", [
+            'is_published' => true,
+        ])->assertOk()
+            ->assertJsonPath('data.is_published', true)
+            ->assertJsonPath('data.is_featured', true);
+
+        $post->refresh();
+        $this->assertTrue($post->is_published);
+        $this->assertSame($publishedAt->timestamp, $post->published_at->timestamp);
+        $this->getJson('/api/news/draft-story')->assertOk();
+
+        $this->withToken($token)->patchJson("/api/admin/posts/{$post->id}", [
+            'is_published' => false,
+        ])->assertOk()
+            ->assertJsonPath('data.is_published', false)
+            ->assertJsonPath('data.is_featured', true);
+
+        $post->refresh();
+        $this->assertFalse($post->is_published);
+        $this->assertTrue($post->is_featured);
+        $this->assertSame($publishedAt->timestamp, $post->published_at->timestamp);
+        $this->getJson('/api/news/draft-story')
+            ->assertNotFound()
+            ->assertJsonPath('message', 'News not found.');
+    }
+
     public function test_admin_can_schedule_a_post_during_update(): void
     {
         $this->freezeTime();
@@ -143,6 +236,7 @@ class AdminContentManagementTest extends TestCase
         $scheduledAt = now()->addHours(6)->startOfMinute();
 
         $this->withToken($token)->putJson("/api/admin/posts/{$post->id}", [
+            'is_published' => true,
             'published_at' => $scheduledAt->toIso8601String(),
         ])->assertOk()
             ->assertJsonPath('data.is_published', true);
@@ -150,6 +244,10 @@ class AdminContentManagementTest extends TestCase
         $post->refresh();
         $this->assertTrue($post->is_published);
         $this->assertSame($scheduledAt->timestamp, $post->published_at->timestamp);
+        $this->getJson('/api/news/draft-story')->assertNotFound();
+
+        $this->travelTo($scheduledAt);
+        $this->getJson('/api/news/draft-story')->assertOk();
     }
 
     public function test_post_update_validation_does_not_return_the_category_deletion_message(): void

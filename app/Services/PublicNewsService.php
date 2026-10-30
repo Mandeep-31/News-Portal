@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PublicNewsService
 {
-    public function paginate(array $filters, int $defaultPerPage = 12): LengthAwarePaginator
+    public function paginate(array $filters, int $defaultPerPage = 10): LengthAwarePaginator
     {
         $news = $this->filteredPublishedNews($filters)
             ->orderByDesc('priority')
@@ -98,8 +98,7 @@ class PublicNewsService
                 ->orWhere('body', 'like', "%{$term}%")
                 ->orWhereHas('category', fn (Builder $categoryQuery) => $categoryQuery
                     ->where('name', 'like', "%{$term}%"))))
-            ->when($filters['category'] ?? null, fn (Builder $query, string $category) => $query->whereHas('category', fn (Builder $categoryQuery) => $categoryQuery
-                ->where('name', $category)->orWhere('slug', $category)))
+            ->when($filters['category'] ?? null, fn (Builder $query, int $categoryId) => $query->where('category_id', $categoryId))
             ->when($filters['category_id'] ?? null, fn (Builder $query, int $categoryId) => $query->where('category_id', $categoryId));
     }
 }

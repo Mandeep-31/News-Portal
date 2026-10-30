@@ -1,5 +1,4 @@
 <?php
-
 use App\Http\Controllers\Admin\BannerController as AdminBannerController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -11,7 +10,6 @@ use App\Http\Controllers\Api\NewsController;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
 Route::get('/news', [NewsController::class, 'index']);
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{categoryId}', [CategoryController::class, 'show'])
@@ -21,10 +19,8 @@ Route::get('/category/{categoryId}/news', [CategoryController::class, 'news'])
 Route::get('/news/search', [NewsController::class, 'search']);
 Route::get('/news/{slug}', [NewsController::class, 'show']);
 Route::get('/banners', [BannerController::class, 'index']);
-
 Route::post('/admin/login', [AdminAuthController::class, 'login'])
     ->middleware('throttle:5,1');
-
 Route::middleware(['auth:sanctum', 'admin.token'])->prefix('admin')->group(function () {
     Route::post('/logout', [AdminAuthController::class, 'logout']);
     Route::get('/dashboard', [DashboardController::class, 'index']);

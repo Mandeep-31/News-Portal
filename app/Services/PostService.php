@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Post;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
@@ -97,6 +98,18 @@ class PostService
         if ($publishNow) {
             $updates['is_published'] = true;
             $updates['published_at'] = now();
+        } elseif (array_key_exists('is_published', $data)) {
+            $isPublished = (bool) $data['is_published'];
+            $updates['is_published'] = $isPublished;
+
+            if ($isPublished) {
+                $hasFutureSchedule = array_key_exists('published_at', $data)
+                    && filled($data['published_at'])
+                    && Carbon::parse($data['published_at'])->isFuture();
+                $updates['published_at'] = $hasFutureSchedule ? $data['published_at'] : now();
+            } elseif (array_key_exists('published_at', $data)) {
+                $updates['published_at'] = $data['published_at'];
+            }
         } elseif (array_key_exists('published_at', $data)) {
             $updates['is_published'] = filled($data['published_at']);
             $updates['published_at'] = $data['published_at'];
