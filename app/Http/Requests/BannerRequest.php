@@ -14,12 +14,16 @@ class BannerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'caption' => ['nullable', 'string', 'max:500'],
-            'link_url' => ['nullable', 'url', 'max:2048'],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'title' => ['sometimes', 'required', 'string', 'max:255'],
+            'link_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
+            'sort_order' => ['sometimes', 'required', 'integer', 'between:1,8'],
             'is_active' => ['sometimes', 'boolean'],
-            'image' => ['sometimes', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'image' => [
+                'sometimes',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ];
     }
 }

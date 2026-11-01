@@ -8,7 +8,6 @@ use App\Models\Post;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
 class PublicNewsService
 {
     public function paginate(array $filters, int $defaultPerPage = 10): LengthAwarePaginator
@@ -22,6 +21,22 @@ class PublicNewsService
 
         return $news;
     }
+
+public function paginateNewsList(
+    array $filters,
+    int $defaultPerPage = 10
+): LengthAwarePaginator {
+    $news = $this->filteredPublishedNews($filters)
+        ->orderByDesc('priority')
+        ->orderByDesc('published_at')
+        ->paginate($filters['per_page'] ?? $defaultPerPage);
+
+    $news->getCollection()->transform(
+        fn (Post $post) => $post->toNewsListArray()
+    );
+
+    return $news;
+}
 
     public function findPublishedBySlug(string $slug): ?Post
     {

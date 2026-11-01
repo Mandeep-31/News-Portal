@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\User;
 use App\Services\AdminCredentialVerifier;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -15,6 +16,11 @@ class AdminCredentialVerifierTest extends TestCase
             'admin.password_hash' => Hash::make('correct-password'),
         ]);
 
+        User::query()->updateOrCreate(
+            ['email' => 'admin@example.test'],
+            ['name' => 'News Administrator', 'password' => Hash::make('correct-password')],
+        );
+
         $this->assertTrue(app(AdminCredentialVerifier::class)->verify('admin@example.test', 'correct-password'));
     }
 
@@ -24,6 +30,11 @@ class AdminCredentialVerifierTest extends TestCase
             'admin.email' => 'admin@example.test',
             'admin.password_hash' => Hash::make('correct-password'),
         ]);
+
+        User::query()->updateOrCreate(
+            ['email' => 'admin@example.test'],
+            ['name' => 'News Administrator', 'password' => Hash::make('correct-password')],
+        );
 
         $verifier = app(AdminCredentialVerifier::class);
 

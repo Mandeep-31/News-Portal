@@ -48,8 +48,9 @@ class CategoryService
             ->orderByDesc('published_at')
             ->paginate($perPage);
 
-        $news->getCollection()->transform(fn (Post $post) => $post->toPublicArray());
-
+$news->getCollection()->transform(
+    fn (Post $post) => $post->toNewsListArray()
+);
         return $news;
     }
 
@@ -84,6 +85,6 @@ class CategoryService
             ]);
         }
 
-        $category->delete();
+        $category->forceDelete();
     }
 }

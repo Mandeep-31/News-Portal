@@ -4,6 +4,7 @@ use App\Http\Middleware\AdminAuth;
 use App\Http\Middleware\ForceApiJson;
 use App\Http\Middleware\JsonForPostman;
 use App\Http\Middleware\RequireAdminToken;
+use App\Http\Middleware\RequireSuperAdmin;
 use App\Support\ApiResponse;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.auth' => AdminAuth::class,
             'admin.token' => RequireAdminToken::class,
+            'super.admin' => RequireSuperAdmin::class,
         ]);
         $middleware->appendToGroup('api', [
             ForceApiJson::class,

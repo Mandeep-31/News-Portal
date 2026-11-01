@@ -11,7 +11,7 @@ class StorePostRequest extends PostRequest
             'description' => ['required_without:body', 'string'],
             'body' => ['required_without:description', 'string'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'priority' => ['required', 'integer', 'between:0,10'],
+            'priority' => ['required', 'string', 'in:high,medium,low'],
         ]);
     }
 }

@@ -5,11 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 class Post extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'title',
         'slug',
@@ -18,6 +21,7 @@ class Post extends Model
         'caption',
         'featured_image',
         'images',
+        'category',
         'category_id',
         'author',
         'added_by',
@@ -50,6 +54,38 @@ class Post extends Model
         return $this->belongsTo(Category::class);
     }
 
+public function toNewsListArray(): array
+{
+    /** @var FilesystemAdapter $publicDisk */
+    $publicDisk = Storage::disk('public');
+
+    $category = $this->category;
+
+    $imagePath = $this->featured_image;
+
+    if (! $imagePath && ! empty($this->images)) {
+        $imagePath = $this->images[0] ?? null;
+    }
+
+    return [
+        'featured_image' => $imagePath
+            ? $publicDisk->url($imagePath)
+            : null,
+        'title' => $this->title,
+        'slug' => $this->slug,
+        'created_at' => $this->created_at?->toIso8601String(),
+        'updated_at' => $this->updated_at?->toIso8601String(),
+        'excerpt' => $this->excerpt,
+        'category' => $category === null ? null : [
+            'id' => $category->id,
+            'name' => $category->name,
+            'slug' => $category->slug,
+        ],
+        'priority' => $this->priority,
+        'is_featured' => $this->is_featured,
+    ];
+}
+
     public function toPublicArray(): array
     {
         $images = $this->images ?: array_filter([$this->featured_image]);
@@ -63,6 +99,7 @@ class Post extends Model
             'title' => $this->title,
             'slug' => $this->slug,
             'excerpt' => $this->excerpt,
+            'description' => $this->body,
             'body' => $this->body,
             'caption' => $this->caption,
             'category_id' => $this->category_id,
@@ -81,6 +118,7 @@ class Post extends Model
             'is_published' => $this->is_published,
             'published_at' => $this->published_at?->toIso8601String(),
             'featured_image' => $imageUrls[0] ?? null,
+            'image' => $imageUrls[0] ?? null,
             'images' => $imageUrls,
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

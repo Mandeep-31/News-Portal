@@ -28,6 +28,14 @@ class AdminAuthenticationTest extends TestCase
             'admin.email' => $this->adminEmail,
             'admin.password_hash' => Hash::make($this->adminPassword),
         ]);
+
+        User::query()->updateOrCreate(
+            ['email' => $this->adminEmail],
+            [
+                'name' => 'News Administrator',
+                'password' => Hash::make($this->adminPassword),
+            ],
+        );
     }
 
     public function test_admin_can_log_in_and_receive_a_bearer_token(): void

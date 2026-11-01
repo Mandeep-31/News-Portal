@@ -3,12 +3,13 @@
 namespace App\Services;
 
 use App\Models\User;
-use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
 class AdminAuthService
 {
-    public function __construct(private readonly AdminCredentialVerifier $credentials) {}
+    public function __construct(
+        private readonly AdminCredentialVerifier $credentials
+    ) {}
 
     public function issueApiToken(string $email, string $password): ?string
     {
@@ -16,15 +17,19 @@ class AdminAuthService
             return null;
         }
 
-        $admin = User::firstOrCreate(
-            ['email' => config('admin.email')],
-            [
-                'name' => 'News Administrator',
-                'password' => Str::random(64),
-            ],
-        );
+        $admin = User::query()
+            ->where('email', $email)
+            ->first();
 
-        return $admin->createToken('admin-api', ['admin'])->plainTextToken;
+        if (! $admin instanceof User || ! $admin->isAdmin()) {
+            return null;
+        }
+
+        $abilities = $admin->isSuperAdmin()
+            ? ['admin', 'super-admin']
+            : ['admin'];
+
+        return $admin->createToken('admin-api', $abilities)->plainTextToken;
     }
 
     public function revokeApiToken(PersonalAccessToken $token): void

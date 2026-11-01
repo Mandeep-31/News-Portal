@@ -2,19 +2,21 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class AdminCredentialVerifier
 {
     public function verify(string $email, string $password): bool
     {
-        $adminEmail = config('admin.email');
-        $adminHash = config('admin.password_hash');
+        $admin = User::query()
+            ->where('email', $email)
+            ->first();
 
-        if (! $adminEmail || ! $adminHash) {
+        if (! $admin || ! $admin->isAdmin()) {
             return false;
         }
 
-        return hash_equals($adminEmail, $email) && Hash::check($password, $adminHash);
+        return Hash::check($password, $admin->password);
     }
 }

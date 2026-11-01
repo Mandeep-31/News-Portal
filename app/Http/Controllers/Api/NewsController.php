@@ -15,8 +15,7 @@ class NewsController extends Controller
 
     public function index(NewsIndexRequest $request): JsonResponse
     {
-        $news = $this->news->paginate($request->validated());
-
+        $news = $this->news->paginateNewsList($request->validated());
         return ApiResponse::paginated($news, 'News retrieved successfully.');
     }
 

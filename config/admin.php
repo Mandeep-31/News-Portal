@@ -1,6 +1,9 @@
 <?php
 
 return [
-    'email' => env('ADMIN_EMAIL'),
-    'password_hash' => env('ADMIN_PASSWORD_HASH'),
+    'super_admin' => [
+        'name' => env('SUPER_ADMIN_NAME'),
+        'email' => env('SUPER_ADMIN_EMAIL'),
+        'password' => env('SUPER_ADMIN_PASSWORD'),
+    ],
 ];
