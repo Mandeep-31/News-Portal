@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AdminAccountController extends Controller
 {
@@ -79,8 +80,23 @@ class AdminAccountController extends Controller
 
         $payload = $request->validated();
 
-        $admin->fill($payload);
-        $admin->save();
+        $passwordChanged = array_key_exists('password', $payload);
+        $roleChanged = array_key_exists('role', $payload)
+            && $payload['role'] !== $admin->role;
+
+        DB::transaction(function () use (
+            $admin,
+            $payload,
+            $passwordChanged,
+            $roleChanged
+        ) {
+            $admin->fill($payload);
+            $admin->save();
+
+            if ($passwordChanged || $roleChanged) {
+                $this->revokeAdminTokens($admin);
+            }
+        });
 
         return ApiResponse::success('Admin updated successfully.', [
             'id' => $admin->id,
@@ -109,8 +125,24 @@ class AdminAccountController extends Controller
             );
         }
 
-        $admin->delete();
+        DB::transaction(function () use ($admin) {
+            $this->revokeAdminTokens($admin);
+            $admin->delete();
+        });
 
         return ApiResponse::success('Admin deleted successfully.');
+    }
+
+    private function revokeAdminTokens(User $admin): void
+    {
+        $admin->tokens()->delete();
+
+        DB::table('admin_refresh_tokens')
+            ->where('user_id', $admin->id)
+            ->whereNull('revoked_at')
+            ->update([
+                'revoked_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }

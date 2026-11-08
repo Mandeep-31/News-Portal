@@ -4,11 +4,14 @@ namespace Tests\Unit;
 
 use App\Models\User;
 use App\Services\AdminCredentialVerifier;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AdminCredentialVerifierTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_it_accepts_the_configured_admin_credentials(): void
     {
         config([
@@ -18,10 +21,17 @@ class AdminCredentialVerifierTest extends TestCase
 
         User::query()->updateOrCreate(
             ['email' => 'admin@example.test'],
-            ['name' => 'News Administrator', 'password' => Hash::make('correct-password')],
+            [
+                'name' => 'News Administrator',
+                'password' => 'correct-password',
+                'role' => User::ROLE_ADMIN,
+            ],
         );
 
-        $this->assertTrue(app(AdminCredentialVerifier::class)->verify('admin@example.test', 'correct-password'));
+        $this->assertTrue(
+            app(AdminCredentialVerifier::class)
+                ->verify('admin@example.test', 'correct-password')
+        );
     }
 
     public function test_it_rejects_invalid_or_unconfigured_admin_credentials(): void
@@ -33,15 +43,30 @@ class AdminCredentialVerifierTest extends TestCase
 
         User::query()->updateOrCreate(
             ['email' => 'admin@example.test'],
-            ['name' => 'News Administrator', 'password' => Hash::make('correct-password')],
+            [
+                'name' => 'News Administrator',
+                'password' => 'correct-password',
+                'role' => User::ROLE_ADMIN,
+            ],
         );
 
         $verifier = app(AdminCredentialVerifier::class);
 
-        $this->assertFalse($verifier->verify('other@example.test', 'correct-password'));
-        $this->assertFalse($verifier->verify('admin@example.test', 'wrong-password'));
+        $this->assertFalse(
+            $verifier->verify('other@example.test', 'correct-password')
+        );
 
-        config(['admin.email' => null, 'admin.password_hash' => null]);
-        $this->assertFalse($verifier->verify('admin@example.test', 'correct-password'));
+        $this->assertFalse(
+            $verifier->verify('admin@example.test', 'wrong-password')
+        );
+
+        config([
+            'admin.email' => null,
+            'admin.password_hash' => null,
+        ]);
+
+        $this->assertFalse(
+            $verifier->verify('admin@example.test', 'correct-password')
+        );
     }
 }

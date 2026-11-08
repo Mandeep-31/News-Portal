@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\NewsController;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\ValidateFrontendOrigin;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -89,12 +91,6 @@ Route::middleware(['auth:sanctum', 'admin.token'])
                 'destroy' => 'api.admin.categories.destroy',
             ]);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Super Admin Only: Admin Account Management
-        |--------------------------------------------------------------------------
-        */
-
         Route::middleware('super.admin')->group(function () {
 
             Route::get('/admins', [AdminAccountController::class, 'index']);
@@ -113,13 +109,11 @@ Route::middleware(['auth:sanctum', 'admin.token'])
 
         });
     });
-
-/*
-|--------------------------------------------------------------------------
-| Authenticated User
-|--------------------------------------------------------------------------
-*/
-
+Route::post('/admin/refresh', [AdminAuthController::class, 'refresh'])
+    ->middleware([
+        'throttle:10,1',
+        ValidateFrontendOrigin::class,
+    ]);
 Route::get('/user', function (Request $request) {
     return ApiResponse::success(
         'User retrieved successfully.',

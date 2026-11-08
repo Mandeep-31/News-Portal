@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class UpdateAdminRequest extends FormRequest
 {
@@ -29,7 +30,15 @@ class UpdateAdminRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($admin?->id),
             ],
 
-            'password' => ['sometimes', 'string', 'min:8'],
+            'password' => [
+                'sometimes',
+                'string',
+                Password::min(12)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
         ];
     }
 }

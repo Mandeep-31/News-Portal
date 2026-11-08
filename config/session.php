@@ -19,7 +19,9 @@ return [
     */
 
     'driver' => env('SESSION_DRIVER', 'database'),
+    'refresh_cookie_secure' => env('REFRESH_COOKIE_SECURE', false),
 
+    'refresh_cookie_same_site' => env('REFRESH_COOKIE_SAME_SITE', 'lax'),
     /*
     |--------------------------------------------------------------------------
     | Session Lifetime

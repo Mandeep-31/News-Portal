@@ -17,7 +17,7 @@ class NewsIndexRequest extends FormRequest
             'q' => ['nullable', 'string', 'max:200'],
             'category' => ['nullable', 'integer', 'exists:categories,id'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:8'],
         ];
     }
 }

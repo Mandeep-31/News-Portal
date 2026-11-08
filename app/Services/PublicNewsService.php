@@ -24,7 +24,7 @@ class PublicNewsService
 
 public function paginateNewsList(
     array $filters,
-    int $defaultPerPage = 10
+    int $defaultPerPage = 8
 ): LengthAwarePaginator {
     $news = $this->filteredPublishedNews($filters)
         ->orderByDesc('priority')

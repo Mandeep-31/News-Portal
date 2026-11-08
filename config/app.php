@@ -41,7 +41,32 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+
     /*
+    |--------------------------------------------------------------------------
+    | Application URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used by the console to properly generate URLs when using
+    | the Artisan command line tool. You should set this to the root of
+    | the application so that it's available within Artisan commands.
+    |
+    */
+
+    'url' => env('APP_URL', 'http://localhost'),
+    /*
+    |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used to generate links to the frontend application.
+    |
+    */
+
+'frontend_urls' => env(
+    'FRONTEND_URLS',
+    'http://localhost:5173'
+),    /*
     |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------

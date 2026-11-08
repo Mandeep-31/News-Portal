@@ -107,9 +107,7 @@ class PublicCategoriesTest extends TestCase
             'published_at' => now()->subDays(8),
         ]);
         $this->createPost($otherCategory, 'other-category-story');
-
         $firstPage = $this->getJson("/api/category/{$category->id}/news?per_page=2");
-
         $firstPage->assertOk()
             ->assertJsonStructure(['success', 'message', 'data', 'errors', 'meta'])
             ->assertJsonPath('success', true)
